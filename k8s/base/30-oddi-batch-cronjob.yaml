@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oddi-batch-monthly-crawler
+  namespace: oddi
+spec:
+  schedule: "0 0 1 * *" # 매월 1일 자정(00:00) 자동 실행
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: oddi-batch
+            image: oddi/oddi-batch:latest
+            command: ["npm", "run", "start:prod"]
+            envFrom:
+            - configMapRef:
+                name: oddi-config
+            - secretRef:
+                name: oddi-secret
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+          restartPolicy: OnFailure

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front-api
+  namespace: oddi
+  labels:
+    app: front-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: front-api
+  template:
+    metadata:
+      labels:
+        app: front-api
+    spec:
+      containers:
+      - name: front-api
+        image: oddi/front-api:latest
+        ports:
+        - containerPort: 4000
+        envFrom:
+        - configMapRef:
+            name: oddi-config
+        - secretRef:
+            name: oddi-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: front-api-service
+  namespace: oddi
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4000
+  selector:
+    app: front-api
