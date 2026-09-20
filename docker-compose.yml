@@ -1,0 +1,25 @@
+# docker-compose.yml
+# ODDI Local Development Environment (Docker PostgreSQL + PostGIS)
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: oddi-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: oddi
+      POSTGRES_PASSWORD: oddi2026password*
+      POSTGRES_DB: oddi
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - oddi_postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+volumes:
+  oddi_postgres_data:
+    driver: local

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oddi-dev-db-postgresql-deployment
+  namespace: oddi-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oddi-dev-db-postgresql
+  template:
+    metadata:
+      labels:
+        app: oddi-dev-db-postgresql
+    spec:
+      containers:
+        - name: postgres
+          image: postgis/postgis:16-3.4 # PostGIS가 포함된 최신 안정 버전
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "oddi_db"
+            - name: POSTGRES_USER
+              value: "oddi_admin"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: oddi-dev-db-postgresql-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: oddi-dev-db-postgresql-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: oddi-dev-db-postgresql-storage
+          persistentVolumeClaim:
+            claimName: oddi-dev-db-postgresql-pvc
