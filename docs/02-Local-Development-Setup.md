@@ -1,20 +1,26 @@
 # 💻 Local Development Infrastructure Setup Guide
 
 > **위치:** `apps/oddi-infra/docs/02-Local-Development-Setup.md`  
-> **최종 수정일:** 2026-08-02  
+> **최종 수정일:** 2026-11-13  
 > **관련 문서:** [[01-Infrastructure-Overview]]
 
 ---
 
 ## 1. 개요
 
-본 문서는 로컬 개발 환경에서 **Docker PostgreSQL**을 구동하고, `apps/database/schema.sql` 스크립트를 통한 **자동 DB 초기화**, 그리고 Node.js `v24.18.1` 기반의 프론트엔드 및 백엔드 서비스를 실행하는 가이드를 다룹니다.
+본 문서는 로컬 개발 환경에서 **Docker PostgreSQL**을 구동하고, `database/schema.sql`과 `database/seed.sql`로 DB를 초기화한 뒤 각 저장소의 서비스를 실행하는 절차를 다룬다.
+
+서비스와 저장소는 나뉘어 있다.
+
+- **프론트 앱:** Flutter, `oddi-app`
+- **프론트용 API:** NestJS, `oddi-backend` (`localhost:4001`)
+- **백엔드용 API:** Spring Boot, `oddi-backend-admin` (`localhost:9090`). 이후 NestJS로 변경 예정
 
 ---
 
 ## 2. Docker PostgreSQL 셋팅 (`docker-compose.yml`)
 
-로컬 DB는 프로젝트 루트의 `docker-compose.yml`을 통해 **PostGIS 16** 컨테이너로 구동됩니다.
+로컬 DB는 `oddi-infra` 루트의 `docker-compose.yml`을 통해 **PostGIS 16** 컨테이너로 구동된다.
 
 ### 2.1 설정 파일 구조
 ```yaml
@@ -22,7 +28,6 @@
 services:
   db:
     image: postgis/postgis:16-3.4
-    platform: linux/amd64
     container_name: oddi-postgres
     restart: unless-stopped
     environment:
@@ -33,7 +38,8 @@ services:
       - "5432:5432"
     volumes:
       - oddi_postgres_data:/var/lib/postgresql/data
-      - ./apps/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
 
 volumes:
   oddi_postgres_data:
@@ -43,7 +49,7 @@ volumes:
 ### 2.2 로컬 DB 구동 명령어
 
 ```bash
-# 1. 로컬 DB 컨테이너 실행 (백그라운드)
+# 1. oddi-infra 루트에서 로컬 DB 컨테이너 실행
 docker-compose up -d
 
 # 2. DB 구동 상태 및 포트(5432) 바인딩 확인
@@ -55,28 +61,37 @@ docker ps
 
 ---
 
-## 3. 로컬 마이크로서비스 실행 가이드
+## 3. 로컬 서비스 실행
 
-### 3.1 Node.js 런타임 세팅 (`nvm`)
+### 3.1 프론트용 API (`oddi-backend`, NestJS)
+
+Node.js `v24.18.1`을 사용한다.
+
 ```bash
-# Node.js 24.18.1 버전 세팅
 nvm install 24.18.1
 nvm alias default 24.18.1
 nvm use default
-```
 
-### 3.2 백엔드 API (`apps/front-api`) 실행
-```bash
-cd apps/front-api
+cd ../oddi-backend
 npm install
 npm run start:dev
-# http://localhost:4000 에서 API 대기
+# http://localhost:4001
 ```
 
-### 3.3 프론트엔드 (`apps/oddi`) 실행
+### 3.2 백엔드용 API (`oddi-backend-admin`, Spring Boot)
+
+Java 21. 이후 이 API는 NestJS로 바꾼다.
+
 ```bash
-cd apps/oddi
-npm install
-npm run dev
-# http://localhost:3000 에서 웹 서비스 확인
+cd ../oddi-backend-admin
+./gradlew bootRun
+# http://localhost:9090
+```
+
+### 3.3 프론트 앱 (`oddi-app`, Flutter)
+
+```bash
+cd ../oddi-app
+flutter pub get
+flutter run
 ```
